@@ -1,0 +1,179 @@
+特征提取的方法：
+相关性选择：1、personr相关系数；2、最大信息系数（XGB、MIC）；3、距离相关系数（MINE）
+基于模型选择：1、树模型（决策树，随机森林）；2、正则化（L1正则化/Lasso和L2正则化/Ridge regression）
+顶层特征选择：1、稳定性（RandomizedLasso）；2、递归消除（RFE）
+1、personr相关系数
+皮尔森相关系数是一种最简单的，能帮助理解特征和响应变量之间关系的方法，该方法衡量的是变量之间的线性相关性，结果的取值区间为[-1，1]，-1表示完全的负相关(这个变量下降，那个就会上升)，+1表示完全的正相关，0表示没有线性相关。
+
+Pearson Correlation速度快、易于计算，经常在拿到数据(经过清洗和特征提取之后的)之后第一时间就执行。Scipy的pearsonr方法能够同时计算相关系数和p-value，
+Pearson相关系数的一个明显缺陷是，作为特征排序机制，他只对线性关系敏感。如果关系是非线性的，即便两个变量具有一一对应的关系，Pearson相关性也可能会接近0。
+相关代码：
+from scipy.stats import pearsonr
+columns=X_train.columns
+feature_importance=[(column,pearsonr(X_train[column],y_train)[0]) for column in columns]
+feature_importance.sort(key=lambda x:x[1])
+2、Xgboost算法
+1、正则化
+标准GBM的实现没有像XGBoost这样的正则化步骤。正则化对减少过拟合也是有帮助的。 
+实际上，XGBoost以“正则化提升(regularized boosting)”技术而闻名。
+2、并行处理
+XGBoost可以实现并行处理，相比GBM有了速度的飞跃，LightGBM也是微软最新推出的一个速度提升的算法。 XGBoost也支持Hadoop实现。
+3、高度的灵活性
+XGBoost 允许用户定义自定义优化目标和评价标准 。
+4、缺失值处理
+XGBoost内置处理缺失值的规则。用户需要提供一个和其它样本不同的值，然后把它作为一个参数传进去，以此来作为缺失值的取值。XGBoost在不同节点遇到缺失值时采用不同的处理方法，并且会学习未来遇到缺失值时的处理方法。
+5、剪枝
+当分裂时遇到一个负损失时，GBM会停止分裂。因此GBM实际上是一个贪心算法。XGBoost会一直分裂到指定的最大深度(max_depth)，然后回过头来剪枝。如果某个节点之后不再有正值，它会去除这个分裂。 
+这种做法的优点，当一个负损失（如-2）后面有个正损失（如+10）的时候，就显现出来了。GBM会在-2处停下来，因为它遇到了一个负值。但是XGBoost会继续分裂，然后发现这两个分裂综合起来会得到+8，因此会保留这两个分裂。
+6、内置交叉验证
+XGBoost允许在每一轮boosting迭代中使用交叉验证。因此，可以方便地获得最优boosting迭代次数。 
+而GBM使用网格搜索，只能检测有限个值。
+7、在已有的模型基础上继续
+XGBoost可以在上一轮的结果上继续训练。 
+sklearn中的GBM的实现也有这个功能，两种算法在这一点上是一致的。
+代码实现：
+mport xgboost as xgb
+dtrain=xgb.DMatrix(X_train,label=y_train)
+dtest=xgb.DMatrix(X_test,label=y_test)
+params={
+    'booster':'gbtree',
+    'objective':'rank:pairwise',
+    'eval_metric':'auc',
+    'gama':0.1,
+    'min_child_weight':2,
+    'max_depth':5,
+    'lambda':10,
+    'subsample':0.7,
+    'colsample_bytree':0.7,
+    'eta':0.01,
+    'tree_method':'exact',
+    'seed':0,
+    'nthead':7
+}
+watchlist=[(dtrain,'train'),(dtest,'test')]
+model=xgb.train(params,dtrain,num_boost_round=100,evals=watchlist)
+delete_feature=['merchant_max_distance']
+X_train=X_train[[i for i in columns if i not in delete_feature]]
+X_test=X_test[[i for i in columns if i not in delete_feature]]
+dtrain=xgb.DMatrix(X_train,label=y_train)
+dtest=xgb.DMatrix(X_test,label=y_test)
+watchlist=[(dtrain,'train'),(dtest,'test')]
+model=xgb.train(params,dtrain,num_boost_round=100,evals=watchlist)
+
+feature_importance=model.get_fscore()
+feature_importance=sorted(feature_importance.items(),key=lambda x:x[1])
+delete_feature=['this_day_user_receive_same_coupon_count']
+X_train=X_train[[i for i in columns if i not in delete_feature]]
+X_test=X_test[[i for i in columns if i not in delete_feature]]
+dtrain=xgb.DMatrix(X_train,label=y_train)
+dtest=xgb.DMatrix(X_test,label=y_test)
+watchlist=[(dtrain,'train'),(dtest,'test')]
+model=xgb.train(params,dtrain,num_boost_round=100,evals=watchlist)
+3、MINE算法
+距离相关系数是为了克服Pearson相关系数的弱点而生的。在x和x^2这个例子中，即便Pearson相关系数是0，我们也不能断定这两个变量是独立的（有可能是非线性相关）；但如果距离相关系数是0，那么我们就可以说这两个变量是独立的。
+相关代码：
+from minepy import MINE
+x = np.linspace(0, 1, 1000)
+y = np.sin(10 * np.pi * x) + x
+mine = MINE(alpha=0.6, c=15, est="mic_approx")
+mine.compute_score(x, y)
+4、随机森林
+相关代码实现：
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score,ShuffleSplit
+import numpy as np
+from sklearn.metrics import roc_auc_score
+rf=RandomForestClassifier(n_estimators=300,max_depth=7,min_samples_split=10,min_samples_leaf=10,
+                          n_jobs=4,random_state=0)
+rf.fit(X_train,y_train)
+pred=rf.predict_proba(X_test)[:,1]
+print(roc_auc_score(y_test,pred))
+#0.867996345046
+
+rf=RandomForestClassifier(n_estimators=300,max_depth=7,min_samples_split=10,min_samples_leaf=10,
+                          n_jobs=4,random_state=0)
+feature_importance=[]
+for i in range(len(columns)):
+    score=cross_val_score(rf,X_train.values[:,i:i+1],y_train,scoring='r2',
+                          cv=ShuffleSplit(len(X_train),3,0.3))
+    feature_importance.append((columns[i],round(np.mean(score),3)))
+feature_importance.sort(key=lambda x:x[1])
+
+X_train,X_test,y_train,y_test=train_test_split(x,y,test_size=0.1,random_state=0)
+delete_feature=['merchant_max_distance']
+X_train=X_train[[i for i in columns if i not in delete_feature]]
+X_test=X_test[[i for i in columns if i not in delete_feature]]
+rf=RandomForestClassifier(n_estimators=300,max_depth=7,min_samples_split=10,min_samples_leaf=10,
+                          n_jobs=4,random_state=0)
+rf.fit(X_train,y_train)
+pred=rf.predict_proba(X_test)[:,1]
+print(roc_auc_score(y_test,pred))
+5、L1和L2
+相关代码实现：
+l1 0.846511249837 0.846712454002
+'''
+from sklearn.metrics import roc_auc_score
+X_train,X_test,y_train,y_test=train_test_split(x,y,test_size=0.1,random_state=0)
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+lr=LogisticRegression(penalty='l1',random_state=0,n_jobs=-1).fit(X_train,y_train)
+pred=lr.predict_proba(X_test)[:,1]
+print(roc_auc_score(y_test,pred))
+
+feature_importance=[(i[0],i[1]) for i in zip(columns,lr.coef_[0])]
+feature_importance.sort(key=lambda x:np.abs(x[1]))
+
+X_train,X_test,y_train,y_test=train_test_split(x,y,test_size=0.1,random_state=0)
+delete_feature=['user_mean_distance']
+X_train=X_train[[i for i in columns if i not in delete_feature]]
+X_test=X_test[[i for i in columns if i not in delete_feature]]
+
+lr=LogisticRegression(penalty='l1',random_state=0,n_jobs=-1).fit(X_train,y_train)
+pred=lr.predict_proba(X_test)[:,1]
+print(roc_auc_score(y_test,pred))
+'''
+l2  0.806342999549  0.845590243511
+'''
+from sklearn.metrics import roc_auc_score
+X_train,X_test,y_train,y_test=train_test_split(x,y,test_size=0.1,random_state=0)
+from sklearn.linear_model import LogisticRegression
+import numpy as np
+lr=LogisticRegression(penalty='l2',random_state=0,n_jobs=-1).fit(X_train,y_train)
+pred=lr.predict_proba(X_test)[:,1]
+print(roc_auc_score(y_test,pred))
+
+feature_importance=[(i[0],i[1]) for i in zip(columns,lr.coef_[0])]
+feature_importance.sort(key=lambda x:np.abs(x[1]),reverse=True)
+
+X_train,X_test,y_train,y_test=train_test_split(x,y,test_size=0.1,random_state=0)
+delete_feature=['total_coupon']
+X_train=X_train[[i for i in columns if i not in delete_feature]]
+X_test=X_test[[i for i in columns if i not in delete_feature]]
+
+lr=LogisticRegression(penalty='l2',random_state=0,n_jobs=-1).fit(X_train,y_train)
+pred=lr.predict_proba(X_test)[:,1]
+print(roc_auc_score(y_test,pred))
+6、RandomizedLasso
+相关代码实现：
+from sklearn.linear_model import RandomizedLasso
+from sklearn.datasets import load_boston
+
+boston=load_boston()
+
+X=boston['data']
+Y=boston['target']
+names=boston['feature_names']
+
+rlasso=RandomizedLasso(alpha=0.025).fit(X,Y)
+
+feature_importance= sorted(zip(names,rlasso.scores_))
+7、RFE
+相关代码实现：
+from sklearn.feature_selection import RFE
+from sklearn.ensemble import RandomForestClassifier
+X_train,X_test,y_train,y_test=train_test_split(x,y,test_size=0.1,random_state=0)
+rf=RandomForestClassifier()
+rfe=RFE(rf,n_features_to_select=1,verbose=1)
+rfe.fit(X_train,y_train)
+
+feature_importance=sorted(zip(map(lambda x:round(x,4),rfe.ranking_),columns),reverse=True)
