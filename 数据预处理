@@ -32,8 +32,8 @@ from sklearn.preprocessing import LabelEncoder,OneHotEncoder
 先用LabelEncoder对离散特征编码，因为onehotencoder只能处理数值
 然后使用OneHotEncoder编码，生成稀疏表示的特征
 再使用sparse.hstack连接连续特征和稀疏特征
-#参考：https://github.com/uniqueness001/sklearn-introduction/blob/master/preprocess.py
 为何连续特征进行离散化，然后可以再考虑二值化？
 离散化后的特征对异常数据有很强的鲁棒性
 特征离散化后，模型会更稳定，比如如果对用户年龄离散化，20-30作为一个区间，不会因为一个用户年龄长了一岁就变成一个完全不同的人。当然处于区间相邻处的样本会刚好相反，所以怎么划分区间是门学问；按区间离散化，划分区间是非常关键的。
 可以考虑离散化的连续特征：可以划为区间，并且划分之后易于模型的快速迭代，例如：年龄、身高、尺码等
+#参考：https://github.com/uniqueness001/sklearn-introduction/blob/master/preprocess.py
