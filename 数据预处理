@@ -1,0 +1,39 @@
+预处理一般步骤：
+1、导入原始数据集(pd.read_csv(path，sep=' '))；
+2、首先明确数据集有多少特征，哪些是连续的，哪些是类别的；
+数据查看：
+#数据概览
+df.info()
+df.describe()
+#数据查看
+df.head() #查看表头
+df.shape() #查看行列
+df.dtypes #查看数据类型
+df["user_age_level"].hist() #查看变量分布
+df.isnull().sum()  #查看每一列缺失值情况
+df['n_null'] = df.isnull().sum(axis=1) #查看每一行缺失值情况
+df["user_age_level"].value_counts() #查看这一列的值统计
+df['user_age_level'].unique() #查看数据取值
+3、检查有没有缺失值，对缺失的特征选择恰当方式进行补充，使数据集比较完整；
+#缺失值填充
+mode_df=df.fillna(df.mode().iloc[0],inplace=True)
+middf_=df.fillna(df.median())
+df["user_age_level"][df.age.isnull()]="0"  #对某一列填充
+均值(mean)，中位数(median)，众数(mode)，-1填充，预测填充
+4、对于连续的数值型特征进行标准化，使得均值为0.方差为1；
+from sklearn.preprocessing import MinMaxScaler,Normalizer,StandardScaler
+最大最小化，正则化，标准化，排序(rank)
+5、对于类别型的数据进行one-hot编码；
+from sklearn.preprocessing import LabelEncoder,OneHotEncoder
+6、将需要转换成类别型数据的连续型数据进行二值化；
+7、为防止过拟合或者其他原因，选择是否要将数据进行正则化。
+8、去噪：历史数据平滑、贝叶斯参数估计平滑
+核心思路：
+先用LabelEncoder对离散特征编码，因为onehotencoder只能处理数值
+然后使用OneHotEncoder编码，生成稀疏表示的特征
+再使用sparse.hstack连接连续特征和稀疏特征
+#参考：https://github.com/uniqueness001/sklearn-introduction/blob/master/preprocess.py
+为何连续特征进行离散化，然后可以再考虑二值化？
+离散化后的特征对异常数据有很强的鲁棒性
+特征离散化后，模型会更稳定，比如如果对用户年龄离散化，20-30作为一个区间，不会因为一个用户年龄长了一岁就变成一个完全不同的人。当然处于区间相邻处的样本会刚好相反，所以怎么划分区间是门学问；按区间离散化，划分区间是非常关键的。
+可以考虑离散化的连续特征：可以划为区间，并且划分之后易于模型的快速迭代，例如：年龄、身高、尺码等
