@@ -1,0 +1,90 @@
+##author --zee(GDUT)##
+from urllib.request import urlretrieve
+import pandas as pd
+def load_data(download=True):
+    if download:
+        data_path,_=urlretrieve("http://archive.ics.uci.edu/ml/machine-learning-databases/ionosphere/ionosphere.data"
+                               ,"ionosphere.csv")
+        print("Downloaded to ionosphere.csv")
+    data =pd.read_csv("ionosphere.csv")
+data =load_data(download=True)
+# Downloaded to ionosphere.csv
+import numpy as np
+import csv
+import os
+home_folder =os.path.expanduser("~")
+data_folder=os.path.join(home_folder, "Data")
+data_filename=os.path.join(data_folder,"Ionosphere","ionosphere.csv")
+#print(data_filename)
+X=np.zeros((351,34),dtype='float')
+y=np.zeros((351,),dtype='bool')
+with open(data_filename,'r')as input_file:
+    reader=csv.reader(input_file)
+    for i,row in enumerate(reader):
+        data=[float(datum) for datum in row[:-1]]
+        X[i]=data
+        y[i]=row[-1]=='g'
+        
+from sklearn.cross_validation import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+estimator=KNeighborsClassifier()
+X_train,X_test,y_train,y_test=train_test_split(X,y,random_state=14)
+estimator.fit(X_train,y_train)
+y_predicted=estimator.predict(X_test)
+accuracy=np.mean(y_test==y_predicted) * 100
+print("The accuracy is {0:.1f}%".format(accuracy))
+# The accuracy is 86.4%
+
+from sklearn.cross_validation import cross_val_score
+scores = cross_val_score(estimator, X, y, scoring='accuracy')
+average_accuracy = np.mean(scores) * 100
+print("The average accuracy is {0:.1f}%".format(average_accuracy))
+# The average accuracy is 82.3%
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.cross_validation import cross_val_score
+clf = DecisionTreeClassifier(random_state = 14)
+scores = cross_val_score(clf, X , y , scoring='accuracy')
+average_accuracy = np.mean(scores) * 100
+print("The average accuracy is {0:.1f}%".format(average_accuracy))
+# The average accuracy is 86.6%
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.cross_validation import cross_val_score
+from sklearn.decomposition import PCA
+pca = PCA(n_components = 5)
+Xd = pca.fit_transform(X)
+clf = DecisionTreeClassifier(random_state = 14)
+scores = cross_val_score(clf, Xd , y , scoring='accuracy')
+average_accuracy = np.mean(scores) * 100
+print("The average accuracy is {0:.1f}%".format(average_accuracy))
+# The average accuracy is 88.6%
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.cross_validation import cross_val_score
+from sklearn.decomposition import PCA
+pca = PCA(n_components = 11)
+Xd = pca.fit_transform(X)
+clf = RandomForestClassifier(random_state = 14) #随机数种子，控制器控制每次的随机
+scores = cross_val_score(clf, Xd , y , scoring='accuracy')
+average_accuracy = np.mean(scores) * 100
+print("The average accuracy is {0:.1f}%".format(average_accuracy))
+# The average accuracy is 93.7%
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.cross_validation import cross_val_score
+from sklearn.decomposition import PCA
+pca = PCA(n_components = 11)
+Xd = pca.fit_transform(X)
+clf = GradientBoostingClassifier(random_state = 200)
+scores = cross_val_score(clf, Xd , y , scoring='accuracy')
+average_accuracy = np.mean(scores) * 100
+print("The average accuracy is {0:.1f}%".format(average_accuracy))
+# The average accuracy is 93.4%
+-----------------------------------------------------------------------------------------------
+随机森林和GBDT的区别：
+随机森林采用的bagging思想，而GBDT采用的boosting思想。这两种方法都是Bootstrap思想的应用，Bootstrap是一种有放回的抽样方法思想。虽然都是有放回的抽样，但二者的区别在于：Bagging采用有放回的均匀取样，而Boosting根据错误率来取样（Boosting初始化时对每一个训练样例赋相等的权重1／n，然后用该算法对训练集训练t轮，每次训练后，对训练失败的样例赋以较大的权重），因此Boosting的分类精度要优于Bagging。Bagging的训练集的选择是随机的，各训练集之间相互独立，弱分类器可并行，而Boosting的训练集的选择与前一轮的学习结果有关，是串行的。
+组成随机森林的树可以是分类树，也可以是回归树；而GB由回归树组成DT只能。
+组成随机森林的树可以并行生成；而GBDT只能是串行生成。
+对于最终的输出结果而言，随机森林采用多数投票等；而GBDT则是将所有结果累加起来，或者加权累加起来。
+随机森林对异常值不敏感；GBDT对异常值非常敏感。
+随机森林对训练集一视同仁；GBDT是基于权值的弱分类器的集成。
+随机森林是通过减少模型方差提高性能；GBDT是通过减少模型偏差提高性能。
+
+
