@@ -1,0 +1,62 @@
+SAS中最常用的10个命令
+SAS是乔伊平时学习中常用到的数据处理软件之一。在处理大批量数据时，SAS不能说太好用呢。SAS也是学习起来十分简单的一个软件，掌握一些基本的命令，就可以满足日常的数据处理需求。
+01
+proc sort   data= aout= bnodup;    bystkcd date;    run;
+proc sort 是特别特别常用到的，因为许多后续命令都要求数据是按照一定格式排列的。比如下面会提到的merge和 first/last。此外，nodup允许我们使用sort命令来去除重复观测值。
+02
+datad;    mergeb c;    bystkcd date;run;
+merge 可以在数据步中实现两个数据集合的合并。在by选项可以定义根据那些变量进行数据的合并。比如在上面给出的例子中，就是根据股票代码（stkcd）和日期（date）进行合并的。
+03
+datae;    setb;    bystkcd date;    iffirst.date then delete;    iflast.date then delete;run;
+有时候，我们可能只需要一个对象所有日期的第一个或者最后一个观测值。这时候first和last就显得特别好用啦。先用前面所提到的sort先对数据集进行排序，然后在数据步先by排序的变量，接着就可以使用first和last对第一个和最后一个观测值进行处理。
+04
+proc expand    data=crsp_m  out=umd;
+bypermno;
+iddate;
+convert ret = cum_return /     transformin=( 1)     transformout=(MOVPROD 6 -1);
+quit;
+如果需要滚动求和（Rolling average）或者滚动求积（Rolling product）,proc expand是再方便不过了。以上面这个小程序为例子，我们要对crsp_m这个数据集进行处理，处理完成的数据集命名为umd。 上面的程序实现的就是对每一只股票（permno）在一个日期（id）计算一个累积6个月收益cum_return。其中cum_return可以表达如下：
+cumreturn=(1 ret?1)(1 ret?2)(1 ret?3)(1 ret?4)(1 ret?5)(1 ret?6)-1
+05
+data cmpst;
+setcmpst_raw;
+dodate = rdq-90tordq 10;
+output;
+end;
+run;
+采用事件研究方法时，需要根据事件日构建事件窗。这时候可以利用上面例子的方式利用do实现，不过需要注意的是不要把output和end落下了，不然会报错的哦。上面的例子就是根据时间rdq，构建事件窗，事件窗是事件前90天到事件后10天。
+06
+proc means       data= crsp_mnwaynoprint;
+classyear permno;
+varret;
+outputout =stat        mean= std=  ;
+run;
+我们还可能还常常需要求一个对象在给定时间内某变量的均值，标准差等统计值。这时候就用proc means。 上面的例子中，输入是股票的月收益率，输出送每只股票每年的月收益率的均值和标准差。加入nway是因为避免在输出的数据集stat中输出总体均值，标准差。
+07
+proc import     out= crsp_m        datafile= "C:\crsp_m.csv"         dbms=csv replace;        getnames=yes;run;       
+proc export             data= results      outfile="C:\results.xlsx"      dbms=xlsxreplace;
+label;
+run;
+然后我们可能常常需要导入和导出数据xlsx，xls，和csv格式的文件。一般会用到proc import 和proc export。用法就如上，不过需要注意的是，dbms需要与文件后缀名保持一致，所以记得改哦。
+08
+proc rank       data=crsp_mout=umd        group=10;
+bydate;
+varcum_return;
+ranksmomr;
+run;
+在一些情景中，需要将样本按照某一变量的大小分成几组。 利用proc rank, 就可以轻松通过group来定义你分组的个数，通过var给出分组所依据的变量。ranks 后定义了分组对应的变量名。
+09
+proc univariate   data=crsp_m noprint;
+whereexchcd = 1 ;
+varsize;
+bydate sic ; 
+outputout= nyse_bp           pctlpts= 10 20 30          pctlpre= sizedec ;
+run;
+proc univariate的功能和proc rank很相似， 不过它输出的是一个样本中某一变量的分位数，根据这个分位数，我们可以进一步地对样本进行分组。 那在什么情况下我们会用到proc univariate呢？一个简单的例子就是我们需要对A 样本根据x 变量进行分组，但是分组是基于在B样本中x变量的分位数。 这时候先利用proc univariate B样本得到x变量的分位数，然后在用得到的分位数来对A样本进行分组。在读文献的时候，经常会遇到样本包含了NYSE,NASDAQ和AMEX三个交易所的股票，然后进行分组的时候只用NYSE子样本（NYSE Breakpoints）。
+10
+proc sql;    create tablecrsp_m3as
+selecta.*, b.*
+fromcrsp_m2asa,nyse_bpasb
+wherea.date=b.dateanda.sic = b.sic;
+quit;
+除了在数据步使用merge来进行数据集的合，你还可以使用proc sql来进行merge。他们两者的功能相似，不过在进行一对多的合并的时候使用merge容易出错，所以这时候对推荐使用sql。
