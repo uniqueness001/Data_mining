@@ -1,0 +1,10 @@
+一、概率论知识：
+1、数学期望（均值）：每次可能的结果的概率乘以其结果的总和
+2、方差：衡量随机变量和其数学期望之间的偏离程度
+3、正态分布：正态分布?（Normal distribution)是一种概率分布。正态分布是具有两个参数μ和σ^2的连续型随机变量的分布，第一参数μ是遵从正态分布的随机变量的均值，第二个参数σ^2是此随机变量的方差。
+二、python知识：
+匿名函数lambda的使用
+map((lambda x : x**2),range(10))
+python实现快速排序
+三、SQL中语句的运行顺序：主要查询语句有：SELECT/FROM/WHERE/GROUP BY...HAVING/ORDER BY/
+FROM ......1;WHERE......2;GROUP BY...HAVING...3;ORDER...BY...4;SELECT...5 
