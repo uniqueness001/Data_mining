@@ -1,0 +1,23 @@
+SAS变量类型
+SAS有如下三种变量类型：
+数值变量
+这是默认变量类型。 这些变量用于数学表达式。
+句法
+INPUT VAR1 VAR2 VAR3; 		#Define numeric variables in the data set.
+在上面的语法中，INPUT语句显示数字变量的声明。
+例
+INPUT ID SALARY COMM_PERCENT;
+字符型变量
+字符变量用于不在数学表达式中使用的值。 它们被视为文本或字符串。 变量通过在变量名称的末尾添加一个带有空格的$ sing来变为字符变量。
+句法
+INPUT VAR1 $ VAR2 $ VAR3 $; 	#Define character variables in the data set.
+在上面的语法中，INPUT语句显示字符变量的声明。
+例
+INPUT FNAME $ LNAME $ ADDRESS $;
+日期变量
+这些变量仅作为日期处理，它们需要采用有效的日期格式。 变量通过添加在变量名称末尾带有空格的日期格式变为日期变量。
+句法
+INPUT VAR1 DATE11. VAR2 MMDDYY10. ; #Define date variables in the data set.
+在上面的语法中，INPUT语句显示日期变量的声明。
+例
+INPUT DOB DATE11. START_DATE MMDDYY10. ;
