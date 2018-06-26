@@ -8,3 +8,34 @@ map((lambda x : x**2),range(10))
 python实现快速排序
 三、SQL中语句的运行顺序：主要查询语句有：SELECT/FROM/WHERE/GROUP BY...HAVING/ORDER BY/
 FROM ......1;WHERE......2;GROUP BY...HAVING...3;ORDER...BY...4;SELECT...5 
+四、python实现快速排序
+算法导论上的快速排序采用分治算法，步骤如下：
+1、对当前待排序列，选区第一个元素记为k
+2、在两边设立两个指针，先从右边向左遍历，如果找到比k小的，则将该元素赋值给i指向的位置，更新ij
+3、再从左向右遍历，如果找到比k大的，则将该元素赋值给j 指向的位置,更新ij
+4、当 i = j 的时候， 这一遍完成。将K赋值给当前i 指向的位置。
+5、这样k已经放到了正确的位置。接下来递归排序k左边的序列，k右边的序列
+# 快速排序
+def quick_sort(elems):
+    quick_sort_rec(elems, 0, len(elems) - 1)
+
+def quick_sort_rec(elems, left, right):
+    if left >= right:
+        return None
+    i = left
+    j = right
+    k = elems[i]
+    while i < j:
+        while i < j and elems[j] >= k:
+            j -= 1
+        if i < j:
+            elems[i] = elems[j]
+            i += 1
+        while i < j and elems[i] <= k:
+            i += 1
+        if i < j:
+            elems[j] = elems[i]
+            j -= 1
+    elems[i] = k
+    quick_sort_rec(elems, left, i-1)
+    quick_sort_rec(elems, i+1, right)
