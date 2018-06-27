@@ -1,0 +1,57 @@
+每个SAS程序必须具有所有这些步骤才能完成读取输入数据，分析数据和给出分析输出。 此外，每个步骤结束时的RUN语句都需要完成该步骤的执行。
+DATA步骤
+
+此步骤涉及将所需数据集加载到SAS存储器中并识别数据集的变量（也称为列）。 它还捕获记录（也称为观察或主体）。 DATA语句的语法如下。
+句法
+
+DATA data_set_name;		#Name the data set.
+INPUT var1,var2,var3; 		#Define the variables in this data set.
+NEW_VAR;			#Create new variables.
+LABEL;			      	#Assign labels to variables.
+DATALINES;		      	#Enter the data.
+RUN;
+例
+
+以下示例显示了命名数据集，定义变量，创建新变量和输入数据的简单情况。 这里字符串变量在结尾有一个$，数字值没有它。
+DATA TEMP;
+INPUT ID $ NAME $ SALARY DEPARTMENT $;
+comm = SALARY*0.25;
+LABEL ID = 'Employee ID' comm = 'COMMISION';
+DATALINES;
+1 Rick 623.3 IT
+2 Dan 515.2 Operations
+3 Michelle 611 IT
+4 Ryan 729 HR
+5 Gary 843.25 Finance
+6 Nina 578 IT
+7 Simon 632.8 Operations
+8 Guru 722.5 Finance
+;
+RUN;
+PROC步骤
+
+该步骤包括调用的SAS内置程序来分析数据。
+句法
+
+PROC procedure_name options; #The name of the proc.
+RUN;
+例
+
+以下示例显示使用MEANS过程打印数据集中数值变量的平均值。
+PROC MEANS;
+RUN;
+输出步骤
+
+可以使用条件输出语句显示数据集中的数据。
+句法
+
+PROC PRINT DATA = data_set;
+OPTIONS;
+RUN;
+例
+
+下面的示例显示在输出中使用where子句从数据集中只产生少数记录。
+PROC PRINT DATA=TEMP;
+WHERE SALARY > 700;
+RUN;
+完整的SAS程序
